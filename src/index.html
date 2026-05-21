@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hamster Pet</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="stage" aria-label="桌面宠物仓鼠">
+      <button class="close-button" title="退出">x</button>
+
+      <div class="speech" aria-live="polite"></div>
+
+      <section class="pet idle" role="button" tabindex="0" aria-label="点击仓鼠互动">
+        <div class="shadow"></div>
+        <img class="pet-frame" src="../assets/hamster/frames-idle/frame_0000.png" alt="" draggable="false" />
+      </section>
+    </main>
+
+    <script src="./renderer.js"></script>
+  </body>
+</html>
