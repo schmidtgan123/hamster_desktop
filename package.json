@@ -6,6 +6,7 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
+    "dist:mac": "electron-builder --mac zip",
     "dist:win": "electron-builder --win nsis portable"
   },
   "build": {
@@ -22,7 +23,7 @@
       "assets/**/*"
     ],
     "mac": {
-      "target": "dmg"
+      "target": "zip"
     },
     "win": {
       "target": [
