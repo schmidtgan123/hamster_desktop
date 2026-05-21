@@ -4,14 +4,20 @@ const speech = document.querySelector(".speech");
 const closeButton = document.querySelector(".close-button");
 
 const config = {
-  sleepAfterIdleMs: Number(window.hamsterPetConfig?.sleepAfterIdleMs) || 60_000
+  sleepAfterIdleMs: Number(window.hamsterPetConfig?.sleepAfterIdleMs) || 60_000,
+  runningDurationMs:
+    Number(window.hamsterPetConfig?.runningDurationMs) || 10 * 60_000,
+  sleepingMomentMinMs:
+    Number(window.hamsterPetConfig?.sleepingMomentMinMs) || 8_000,
+  sleepingMomentMaxMs:
+    Number(window.hamsterPetConfig?.sleepingMomentMaxMs) || 24_000
 };
 
 const framePath = (folder, index) =>
   `../assets/hamster/${folder}/frame_${String(index).padStart(4, "0")}.png`;
 
-const frames = (folder, length) =>
-  Array.from({ length }, (_frame, index) => framePath(folder, index));
+const frames = (folder, length, startIndex = 0) =>
+  Array.from({ length }, (_frame, index) => framePath(folder, index + startIndex));
 
 const animations = {
   idle: {
@@ -26,6 +32,14 @@ const animations = {
   sleep: {
     fps: 4,
     frames: frames("frames-sleep", 12)
+  },
+  sleeping: {
+    fps: 4,
+    frames: frames("frames-sleeping", 12)
+  },
+  running: {
+    fps: 14,
+    frames: frames("frames-running", 14, 2)
   },
   walk: {
     fps: 10,
@@ -44,6 +58,8 @@ let animationTimer;
 let animationFrame = 0;
 let stateTimer;
 let sleepTimer;
+let sleepingMomentTimer;
+let runningTimer;
 let speechTimer;
 let dragging = false;
 let dragStartedAt = 0;
@@ -60,7 +76,7 @@ function preloadAnimationFrames() {
   });
 }
 
-function playAnimation(name, { loop = true } = {}) {
+function playAnimation(name, { loop = true, onComplete } = {}) {
   const animation = animations[name];
   if (!animation) return;
 
@@ -70,6 +86,7 @@ function playAnimation(name, { loop = true } = {}) {
   animationTimer = window.setInterval(() => {
     if (!loop && animationFrame >= animation.frames.length - 1) {
       window.clearInterval(animationTimer);
+      if (onComplete) onComplete();
       return;
     }
 
@@ -78,6 +95,45 @@ function playAnimation(name, { loop = true } = {}) {
       : animationFrame + 1;
     petFrame.src = animation.frames[animationFrame];
   }, 1000 / animation.fps);
+}
+
+function randomBetween(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function sleepingMomentDelay() {
+  const min = Math.max(0, config.sleepingMomentMinMs);
+  const max = Math.max(min, config.sleepingMomentMaxMs);
+  return randomBetween(min, max);
+}
+
+function clearSleepingMomentTimer() {
+  window.clearTimeout(sleepingMomentTimer);
+}
+
+function clearRunningTimer() {
+  window.clearTimeout(runningTimer);
+}
+
+function scheduleSleepingMoment() {
+  clearSleepingMomentTimer();
+
+  if (currentState !== "sleeping") return;
+
+  sleepingMomentTimer = window.setTimeout(() => {
+    if (dragging || currentState !== "sleeping") return;
+
+    playAnimation("sleeping", {
+      loop: false,
+      onComplete: () => {
+        if (currentState !== "sleeping") return;
+
+        petFrame.src =
+          animations.sleep.frames[animations.sleep.frames.length - 1];
+        scheduleSleepingMoment();
+      }
+    });
+  }, sleepingMomentDelay());
 }
 
 function setFacingScale(nextScale) {
@@ -97,6 +153,9 @@ function showSpeech(text, timeout = 1600) {
 }
 
 function setPetState(nextState) {
+  clearSleepingMomentTimer();
+  if (nextState !== "running") clearRunningTimer();
+
   currentState = nextState;
   pet.classList.remove(
     "idle",
@@ -104,13 +163,25 @@ function setPetState(nextState) {
     "sleepy",
     "snacking",
     "sleeping",
+    "running",
     "walking"
   );
   pet.classList.add(nextState);
 
   if (nextState === "sleeping") {
     window.clearTimeout(stateTimer);
-    playAnimation("sleep", { loop: false });
+    playAnimation("sleep", {
+      loop: false,
+      onComplete: () => {
+        if (currentState === "sleeping") scheduleSleepingMoment();
+      }
+    });
+    return;
+  }
+
+  if (nextState === "running") {
+    window.clearTimeout(stateTimer);
+    playAnimation("running");
     return;
   }
 
@@ -122,10 +193,32 @@ function setPetState(nextState) {
   playAnimation("idle");
 }
 
+function startRunningSession() {
+  setPetState("running");
+  showSpeech("跑起来！", 1400);
+
+  runningTimer = window.setTimeout(() => {
+    if (currentState !== "running") return;
+
+    showSpeech("累了...", 1800);
+    setPetState("sleeping");
+  }, config.runningDurationMs);
+}
+
+function chooseQuietIdleState() {
+  if (Math.random() < 0.5) {
+    startRunningSession();
+    return;
+  }
+
+  setPetState("sleeping");
+  showSpeech("呼...", 1400);
+}
+
 function scheduleSleepAfterInactivity() {
   window.clearTimeout(sleepTimer);
 
-  if (currentState === "sleeping") return;
+  if (currentState === "sleeping" || currentState === "running") return;
 
   sleepTimer = window.setTimeout(() => {
     if (dragging) {
@@ -133,10 +226,9 @@ function scheduleSleepAfterInactivity() {
       return;
     }
 
-    if (currentState === "sleeping") return;
+    if (currentState === "sleeping" || currentState === "running") return;
 
-    setPetState("sleeping");
-    showSpeech("呼...", 1400);
+    chooseQuietIdleState();
   }, config.sleepAfterIdleMs);
 }
 
@@ -148,7 +240,9 @@ function resetInactivitySleepTimer() {
 function scheduleIdleState(delay = 1600) {
   window.clearTimeout(stateTimer);
   stateTimer = window.setTimeout(() => {
-    if (dragging || currentState === "sleeping") return;
+    if (dragging || currentState === "sleeping" || currentState === "running") {
+      return;
+    }
 
     const next = idleMoments[Math.floor(Math.random() * idleMoments.length)];
     setPetState(next.name);
@@ -175,6 +269,7 @@ function startDragging(event) {
   resetInactivitySleepTimer();
   pet.classList.add("dragging");
   window.clearTimeout(stateTimer);
+  window.clearTimeout(sleepTimer);
   window.petApi.startDrag(petRectOffset(event));
   pet.setPointerCapture(event.pointerId);
   showSpeech("带我去哪？", 1000);
