@@ -5,13 +5,17 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
+    "optimize:assets": "scripts/optimize-assets.sh",
     "pack": "electron-builder --dir",
     "dist:mac": "electron-builder --mac zip",
-    "dist:win": "electron-builder --win nsis portable"
+    "dist:win": "electron-builder --win nsis",
+    "dist:win:portable": "electron-builder --win portable"
   },
   "build": {
     "appId": "com.codex.hamsterpet",
     "productName": "Hamster Pet",
+    "asar": true,
+    "compression": "maximum",
     "directories": {
       "output": "release"
     },
@@ -20,15 +24,15 @@
       "preload.js",
       "package.json",
       "src/**/*",
-      "assets/**/*"
+      "assets/hamster-optimized/**/*",
+      "!**/.DS_Store"
     ],
     "mac": {
       "target": "zip"
     },
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "nsis"
       ]
     },
     "nsis": {

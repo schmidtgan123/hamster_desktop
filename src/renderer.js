@@ -14,7 +14,7 @@ const config = {
 };
 
 const framePath = (folder, index) =>
-  `../assets/hamster/${folder}/frame_${String(index).padStart(4, "0")}.png`;
+  `../assets/hamster-optimized/${folder}/frame_${String(index).padStart(4, "0")}.png`;
 
 const frames = (folder, length, startIndex = 0) =>
   Array.from({ length }, (_frame, index) => framePath(folder, index + startIndex));
