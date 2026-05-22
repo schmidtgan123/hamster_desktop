@@ -5,6 +5,22 @@ let petWindow;
 let dragTimer;
 let dragOffset = { x: 0, y: 0 };
 
+function finiteNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function normalizePoint(point) {
+  if (!point || typeof point !== "object") {
+    return { x: 0, y: 0 };
+  }
+
+  return {
+    x: finiteNumber(point.x),
+    y: finiteNumber(point.y)
+  };
+}
+
 function createPetWindow() {
   const display = screen.getPrimaryDisplay();
   const { width, height } = display.workAreaSize;
@@ -50,18 +66,24 @@ app.on("activate", () => {
 });
 
 ipcMain.on("pet:drag-start", (_event, offset) => {
-  dragOffset = offset;
+  dragOffset = normalizePoint(offset);
   stopDrag();
 
   dragTimer = setInterval(() => {
     if (!petWindow || petWindow.isDestroyed()) return;
 
-    const cursor = screen.getCursorScreenPoint();
-    petWindow.setPosition(
-      Math.round(cursor.x - dragOffset.x),
-      Math.round(cursor.y - dragOffset.y),
-      false
-    );
+    const cursor = normalizePoint(screen.getCursorScreenPoint());
+    const nextX = Math.round(cursor.x - dragOffset.x);
+    const nextY = Math.round(cursor.y - dragOffset.y);
+
+    if (!Number.isFinite(nextX) || !Number.isFinite(nextY)) return;
+
+    try {
+      petWindow.setPosition(nextX, nextY, false);
+    } catch (error) {
+      console.warn("Unable to move pet window during drag:", error);
+      stopDrag();
+    }
   }, 16);
 });
 
