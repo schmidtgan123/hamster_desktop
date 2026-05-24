@@ -1,27 +1,33 @@
-const { app, BrowserWindow, ipcMain, screen } = require("electron");
-const path = require("path");
+import { app, BrowserWindow, ipcMain, screen } from "electron";
+import path from "path";
+import type { BehaviorConfig } from "./behaviorTypes";
+import { loadBehaviorConfig } from "./configLoader";
 
-let petWindow;
-let dragTimer;
+let petWindow: BrowserWindow | undefined;
+let dragTimer: NodeJS.Timeout | undefined;
 let dragOffset = { x: 0, y: 0 };
+let behaviorConfig: BehaviorConfig = loadBehaviorConfig(app.getAppPath()).config;
 
-function finiteNumber(value, fallback = 0) {
+function finiteNumber(value: unknown, fallback = 0): number {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
 }
 
-function normalizePoint(point) {
+function normalizePoint(point: unknown): { x: number; y: number } {
   if (!point || typeof point !== "object") {
     return { x: 0, y: 0 };
   }
 
+  const candidate = point as { x?: unknown; y?: unknown };
   return {
-    x: finiteNumber(point.x),
-    y: finiteNumber(point.y)
+    x: finiteNumber(candidate.x),
+    y: finiteNumber(candidate.y)
   };
 }
 
-function createPetWindow() {
+function createPetWindow(): void {
+  behaviorConfig = loadBehaviorConfig(app.getAppPath()).config;
+
   const display = screen.getPrimaryDisplay();
   const { width, height } = display.workAreaSize;
 
@@ -44,10 +50,16 @@ function createPetWindow() {
 
   petWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   petWindow.setAlwaysOnTop(true, "floating");
-  petWindow.loadFile(path.join(__dirname, "src", "index.html"));
+  petWindow.webContents.on("before-input-event", (_event, input) => {
+    if (input.type !== "keyDown") return;
+    if (input.meta || input.control || input.alt || input.key === "Escape") return;
+
+    petWindow?.webContents.send("pet:keyboard-input");
+  });
+  petWindow.loadFile(path.join(__dirname, "..", "src", "index.html"));
 }
 
-function stopDrag() {
+function stopDrag(): void {
   if (dragTimer) {
     clearInterval(dragTimer);
     dragTimer = undefined;
@@ -64,6 +76,8 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) createPetWindow();
 });
+
+ipcMain.handle("pet:get-behavior-config", () => behaviorConfig);
 
 ipcMain.on("pet:drag-start", (_event, offset) => {
   dragOffset = normalizePoint(offset);

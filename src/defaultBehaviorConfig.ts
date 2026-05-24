@@ -1,0 +1,202 @@
+import type { BehaviorConfig } from "./behaviorTypes";
+
+export const defaultBehaviorConfig: BehaviorConfig = {
+  version: 1,
+  root: {
+    id: "idle",
+    action: "IdleAction",
+    animation: "idle",
+    className: "idle",
+    duration: "60s",
+    moments: [
+      {
+        action: "IdleAction",
+        className: "idle",
+        text: "吱？",
+        duration: "4.2s"
+      },
+      {
+        action: "IdleAction",
+        className: "sleepy",
+        text: "有点困",
+        duration: "5.2s"
+      },
+      {
+        action: "IdleAction",
+        className: "idle",
+        text: "在发呆",
+        duration: "4.6s"
+      }
+    ],
+    next: [
+      {
+        probability: 0.5,
+        node: {
+          id: "sleep",
+          action: "SleepAction",
+          className: "sleeping",
+          text: "呼...",
+          textDuration: "1.4s",
+          enterAnimation: "sleep",
+          duration: "forever",
+          fixedFrame: {
+            action: "FixedFrameAction",
+            animation: "sleep",
+            frame: "last",
+            children: [
+              {
+                every: {
+                  min: "8s",
+                  max: "24s"
+                },
+                node: {
+                  id: "sleepBreath",
+                  action: "SleepBreathAction",
+                  className: "sleeping",
+                  animation: "sleeping",
+                  return: "fixedFrame"
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        probability: 0.5,
+        node: {
+          id: "wheelRun",
+          action: "WheelRunAction",
+          className: "running",
+          animation: "running",
+          text: "跑起来！",
+          textDuration: "1.4s",
+          duration: "10m",
+          next: {
+            node: {
+              id: "sleepAfterRun",
+              action: "SleepAction",
+              className: "sleeping",
+              text: "累了...",
+              textDuration: "1.8s",
+              enterAnimation: "sleep",
+              duration: "forever",
+              fixedFrame: {
+                action: "FixedFrameAction",
+                animation: "sleep",
+                frame: "last",
+                children: [
+                  {
+                    every: {
+                      min: "8s",
+                      max: "24s"
+                    },
+                    node: {
+                      id: "sleepBreathAfterRun",
+                      action: "SleepBreathAction",
+                      className: "sleeping",
+                      animation: "sleeping",
+                      return: "fixedFrame"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  events: {
+    pointerClick: {
+      node: {
+        id: "happy",
+        action: "HappyAction",
+        className: "happy",
+        animation: "idle",
+        duration: "1.2s",
+        text: {
+          random: ["摸摸！", "今天也要加油", "别捏脸", "我在巡逻", "吱吱"]
+        },
+        return: "root"
+      }
+    },
+    keyboard: {
+      node: {
+        id: "work",
+        action: "WorkAction",
+        className: "working",
+        animation: "working",
+        text: "努力工作中",
+        duration: "3s",
+        return: "root"
+      }
+    },
+    drag: {
+      text: "带我去哪？",
+      textDuration: "1s",
+      left: {
+        node: {
+          id: "dragLeft",
+          action: "RunLeftAction",
+          className: "walking",
+          animation: "walk",
+          facing: "left",
+          return: "rootOnEnd"
+        }
+      },
+      right: {
+        node: {
+          id: "dragRight",
+          action: "RunRightAction",
+          className: "walking",
+          animation: "walk",
+          facing: "right",
+          return: "rootOnEnd"
+        }
+      }
+    }
+  },
+  animations: {
+    idle: {
+      folder: "frames-idle",
+      fps: 4,
+      frames: 6,
+      playback: "pingPong"
+    },
+    sleep: {
+      folder: "frames-sleep",
+      fps: 4,
+      frames: 12,
+      playback: "once"
+    },
+    sleeping: {
+      folder: "frames-sleeping",
+      fps: 4,
+      frames: 12,
+      playback: "once"
+    },
+    running: {
+      folder: "frames-running",
+      fps: 14,
+      startFrame: 2,
+      frames: 14,
+      playback: "loop"
+    },
+    walk: {
+      folder: "frames-walk",
+      fps: 10,
+      frames: 12,
+      playback: "loop"
+    },
+    working: {
+      folder: "frames-working",
+      fps: 14,
+      frames: 16,
+      playback: "loop"
+    }
+  }
+};
+
+export function cloneDefaultBehaviorConfig(): BehaviorConfig {
+  return JSON.parse(JSON.stringify(defaultBehaviorConfig)) as BehaviorConfig;
+}

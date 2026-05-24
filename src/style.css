@@ -240,6 +240,10 @@ body {
   animation: walkStride 220ms ease-in-out infinite;
 }
 
+.working .pet-frame {
+  animation: workFocus 280ms ease-in-out infinite;
+}
+
 .happy .pet-frame {
   animation: happySquish 600ms ease-in-out 2;
 }
@@ -319,6 +323,16 @@ body {
   }
   50% {
     transform: scaleX(var(--pet-facing-scale)) translateY(-5px);
+  }
+}
+
+@keyframes workFocus {
+  0%,
+  100% {
+    transform: scaleX(var(--pet-facing-scale)) translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: scaleX(var(--pet-facing-scale)) translateY(-2px) rotate(1deg);
   }
 }
 

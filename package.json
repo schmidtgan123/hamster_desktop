@@ -2,14 +2,16 @@
   "name": "mac-2d-hamster-pet",
   "version": "0.1.0",
   "description": "A tiny 2D desktop hamster pet prototype.",
-  "main": "main.js",
+  "main": "dist/main.js",
   "scripts": {
-    "start": "electron .",
+    "build": "tsc",
+    "start": "npm run build && electron .",
+    "test:config": "npm run build && node tests/config.test.js",
     "optimize:assets": "scripts/optimize-assets.sh",
-    "pack": "electron-builder --dir",
-    "dist:mac": "electron-builder --mac zip",
-    "dist:win": "electron-builder --win nsis",
-    "dist:win:portable": "electron-builder --win portable"
+    "pack": "npm run build && electron-builder --dir",
+    "dist:mac": "npm run build && electron-builder --mac zip",
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "dist:win:portable": "npm run build && electron-builder --win portable"
   },
   "build": {
     "appId": "com.codex.hamsterpet",
@@ -20,28 +22,39 @@
       "output": "release"
     },
     "files": [
-      "main.js",
-      "preload.js",
+      "dist/**/*",
+      "config/**/*",
       "package.json",
-      "src/**/*",
+      "src/index.html",
+      "src/style.css",
       "assets/hamster-optimized/**/*",
       "!**/.DS_Store"
     ],
     "mac": {
+      "icon": "build/icon.icns",
       "target": "zip"
     },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         "nsis"
       ]
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
     }
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.9.1",
     "electron": "^31.7.7",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.1"
   }
 }
