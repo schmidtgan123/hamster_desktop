@@ -6,7 +6,7 @@ import { loadBehaviorConfig } from "./configLoader";
 let petWindow: BrowserWindow | undefined;
 let dragTimer: NodeJS.Timeout | undefined;
 let dragOffset = { x: 0, y: 0 };
-let behaviorConfig: BehaviorConfig = loadBehaviorConfig(app.getAppPath()).config;
+let behaviorConfig: BehaviorConfig;
 
 function finiteNumber(value: unknown, fallback = 0): number {
   const number = Number(value);
@@ -26,7 +26,7 @@ function normalizePoint(point: unknown): { x: number; y: number } {
 }
 
 function createPetWindow(): void {
-  behaviorConfig = loadBehaviorConfig(app.getAppPath()).config;
+  behaviorConfig = loadBehaviorConfig(app.getAppPath(), app.getPath("userData")).config;
 
   const display = screen.getPrimaryDisplay();
   const { width, height } = display.workAreaSize;

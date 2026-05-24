@@ -6,13 +6,46 @@ import { cloneDefaultBehaviorConfig } from "./defaultBehaviorConfig";
 
 export interface LoadedBehaviorConfig {
   config: BehaviorConfig;
-  source: "yaml" | "default";
-  error?: string;
+  source: "user" | "bundled" | "default";
+  path?: string;
 }
 
-export function loadBehaviorConfig(appRoot: string): LoadedBehaviorConfig {
-  const configPath = path.join(appRoot, "config", "behaviors.yaml");
+export function loadBehaviorConfig(appRoot: string, userDataRoot?: string): LoadedBehaviorConfig {
+  const bundledConfigPath = path.join(appRoot, "config", "behaviors.yaml");
 
+  if (userDataRoot) {
+    const userConfigPath = path.join(userDataRoot, "behaviors.yaml");
+    ensureUserConfig(userConfigPath, bundledConfigPath);
+
+    const userLoaded = tryLoadConfig(userConfigPath, "user");
+    if (userLoaded) return userLoaded;
+
+    console.warn(`Unable to load user behavior config from ${userConfigPath}. Falling back to bundled config.`);
+  }
+
+  const bundledLoaded = tryLoadConfig(bundledConfigPath, "bundled");
+  if (bundledLoaded) return bundledLoaded;
+
+  console.warn(`Unable to load bundled behavior config from ${bundledConfigPath}. Falling back to defaults.`);
+
+  return {
+    config: cloneDefaultBehaviorConfig(),
+    source: "default"
+  };
+}
+
+function ensureUserConfig(userConfigPath: string, bundledConfigPath: string): void {
+  try {
+    if (fs.existsSync(userConfigPath)) return;
+
+    fs.mkdirSync(path.dirname(userConfigPath), { recursive: true });
+    fs.copyFileSync(bundledConfigPath, userConfigPath);
+  } catch (error) {
+    console.warn(`Unable to create user behavior config at ${userConfigPath}.`, error);
+  }
+}
+
+function tryLoadConfig(configPath: string, source: "user" | "bundled"): LoadedBehaviorConfig | undefined {
   try {
     const raw = fs.readFileSync(configPath, "utf8");
     const parsed = yaml.load(raw);
@@ -20,17 +53,12 @@ export function loadBehaviorConfig(appRoot: string): LoadedBehaviorConfig {
 
     return {
       config: parsed,
-      source: "yaml"
+      source,
+      path: configPath
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.warn(`Unable to load behavior config from ${configPath}. Falling back to defaults.`, error);
-
-    return {
-      config: cloneDefaultBehaviorConfig(),
-      source: "default",
-      error: message
-    };
+    console.warn(`Unable to load behavior config from ${configPath}.`, error);
+    return undefined;
   }
 }
 
