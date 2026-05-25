@@ -18,10 +18,18 @@ jobs:
             os: macos-13
             script: dist:mac
             artifact: hamster-pet-macos
+            artifact_path: |
+              release/*.zip
+              release/*.blockmap
+              release/latest-mac.yml
           - name: Windows
             os: windows-latest
             script: dist:win
             artifact: hamster-pet-windows
+            artifact_path: |
+              release/*.exe
+              release/*.blockmap
+              release/latest.yml
 
     steps:
       - name: Check out repository
@@ -46,6 +54,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform.artifact }}
-          path: release/**/*
+          path: ${{ matrix.platform.artifact_path }}
           if-no-files-found: error
           retention-days: 14
